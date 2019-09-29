@@ -1,6 +1,9 @@
 //
 // Created by rogerv on 9/29/19.
 //
+// Based on example code (but with significant cleanup) found in:
+// Rainer Grimm, Concurrency with Modern C++ (Leanpub, 2017 - 2019), 207-209.
+//
 
 #ifndef GENERATOR_H
 #define GENERATOR_H
@@ -19,7 +22,6 @@ namespace coro_exp {
     using handle_type = std::experimental::coroutine_handle<promise_type>;
   private:
     handle_type coro;
-    std::shared_ptr<T> value;
   public:
     explicit generator(handle_type h) : coro(h) {}
     generator(const generator &) = delete;
@@ -38,17 +40,20 @@ namespace coro_exp {
       }
     }
 
-    T getValue() {
-      return coro.promise().current_value;
-    }
-
     bool next() {
       coro.resume();
       return not coro.done();
     }
 
+    T getValue() {
+      return coro.promise().current_value;
+    }
+
     struct promise_type {
+    private:
+      T current_value{};
       friend class generator;
+    public:
       promise_type() = default;
       ~promise_type() = default;
       promise_type(const promise_type&) = delete;
@@ -80,9 +85,6 @@ namespace coro_exp {
       void unhandled_exception() {
         std::exit(1);
       }
-
-    private:
-      T current_value;
     };
   };
 
