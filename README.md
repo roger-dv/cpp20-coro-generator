@@ -27,9 +27,9 @@ Here is the function - its the use of `co_yield` and `co_return` that make it a 
     }
 
 ```
-The generator function's return value `generator<double>` is an iterator for the type of its template argument. In this programming example it is using the template class `coro_exp::generator<>` which the implementation of is provided. However, the C++20 standard is specifying `std::generator<>`[^fn1], but it is not available in the Clang++ (9.0.0) experimental implementation yet.
+The generator function's return value `generator<double>` is an iterator for the type of its template argument. In this programming example it is using the template class `coro_exp::generator<>` which the implementation of is provided. However, the C++20 standard is specifying `std::generator<>`<sup>[1](#fn1)</sup>, but it is not available in the Clang++ (9.0.0) experimental implementation yet.
 
-**NOTE:** The template class `coro_exp::generator<>` has been customized off of Rainer Grimm's implementation.[^fn2]
+**NOTE:** The template class `coro_exp::generator<>` has been customized off of Rainer Grimm's implementation.<sup>[2](#fn2)</sup>
 
 Here is code that consumes generated values from `fibonacci()`:
 ```cpp
@@ -51,17 +51,17 @@ The consuming code and the generator code are executing on the same thread conte
 
 The program can be built with cmake as a `CMakeLists.txt` file is provided. Because it depends on using a Clang C++ compiler that has the experimental implementation of coroutines, will need to insure that the cmake variable `CMAKE_CXX_COMPILER` is suitably defined to `clang++`.
 
-I installed Clang/LLVM from the version 9.0.0 pre-built binary distribution[^fn3]. On my Ubuntu Linux 18.04 I had to also install `libtinfo5`[^fn4], which clang required:
+I installed Clang/LLVM from the version 9.0.0 pre-built binary distribution<sup>[3](#fn3)</sup>. On my Ubuntu Linux 18.04 I had to also install `libtinfo5`<sup>[4](#fn4)</sup>, which clang required:
 ```shell
     sudo apt-get install libtinfo5
 ```
 
 Adjust accordingly to suit your environment.
 
-[^fn1]: [cppreference.com - Coroutines (C++20)](https://en.cppreference.com/w/cpp/language/coroutines)
+<a name="fn1">1</a>: [cppreference.com - Coroutines (C++20)](https://en.cppreference.com/w/cpp/language/coroutines)
 
-[^fn2]: [Rainer Grimm, Concurrency with Modern C++ (Leanpub, 2017 - 2019), 207-209.](https://leanpub.com/concurrencywithmodernc)
+<a name="fn2">2</a>: [Rainer Grimm, Concurrency with Modern C++ (Leanpub, 2017 - 2019), 207-209.](https://leanpub.com/concurrencywithmodernc)
 
-[^fn3]: [Clang-LLVM downloads](http://releases.llvm.org/download.html#9.0.0)
+<a name="fn3">3</a>: [Clang-LLVM downloads](http://releases.llvm.org/download.html#9.0.0)
 
-[^fn4]: [libtinfo5 package](https://ubuntu.pkgs.org/18.04/ubuntu-main-amd64/libtinfo5_6.1-1ubuntu1_amd64.deb.html)
+<a name="fn4">4</a>: [libtinfo5 package](https://ubuntu.pkgs.org/18.04/ubuntu-main-amd64/libtinfo5_6.1-1ubuntu1_amd64.deb.html)
