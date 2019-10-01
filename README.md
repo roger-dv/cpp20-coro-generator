@@ -23,7 +23,6 @@ Here is the function - its the use of `co_yield` and `co_return` that make it a 
           j = tmp;
         } while (i <= ceiling);
       }
-      co_return;
     }
 
 ```
