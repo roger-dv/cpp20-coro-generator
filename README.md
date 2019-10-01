@@ -44,7 +44,7 @@ Here is code that consumes generated values from `fibonacci()`:
 ```
 This will print out 217 values of the Fibonacci Sequence.
 
-The consuming code and the generator code are executing on the same thread context and yet the `fibonacci()` function enjoys a preserved local scope state as it executes and then resumes from `co_yield`. As a coroutine it is then required to execute `co_return` to terminate itself - the consuming code will detect this in the `while(iter.next()) {...}` loop condition and fall out of the loop.
+The consuming code and the generator code are executing on the same thread context and yet the `fibonacci()` function enjoys a preserved local scope state as it executes and then resumes from `co_yield`. The generator function just falls out of the loop when the specified ceiling is exceeded to terminate itself - the consuming code will detect this in the `while(iter.next()) {...}` loop condition and fall out of the loop.
 
 ## Building the program
 
