@@ -22,7 +22,6 @@ generator<double> fibonacci(const double ceiling) {
       j = tmp;
     } while (i <= ceiling);
   }
-  co_return;
 }
 #pragma clang diagnostic pop
 
