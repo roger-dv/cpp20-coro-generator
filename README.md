@@ -8,7 +8,7 @@ This generator example generates the Fibonacci Sequence up to some specified cei
 
 ## Description
 
-Here is the function - its the use of `co_yield` and `co_return` that make it a C++20 coroutine (as opposed to an ordinary function):
+Here is the function - its the use of `co_yield` that make it a C++20 coroutine (as opposed to an ordinary function):
 
 ```cpp
     generator<double> fibonacci(const double ceiling) {
