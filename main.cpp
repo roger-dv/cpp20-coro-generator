@@ -1,10 +1,18 @@
-#include <experimental/coroutine>
-#include "generator.h"
 #include <iostream>
+#include "generator.h"
 
 using coro_exp::generator;
 
 static const double demo_ceiling = 10E44;
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-noreturn"
+generator<int> f() {
+  int i = 0;
+  while (true)
+    co_yield i++;
+}
+#pragma clang diagnostic pop
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-variable"
@@ -26,10 +34,22 @@ generator<double> fibonacci(const double ceiling) {
 #pragma clang diagnostic pop
 
 int main() {
-  std::cout << "Example program using C++20 coroutine to implement a Fibonacci Sequence generator" << '\n';
-  auto iter = fibonacci(demo_ceiling);
-  while(iter.next()) {
-    const auto value = iter.getValue();
-    std::cout << value << '\n';
+  std::cout << "Example using C++20 coroutines to implement Simple Integer and Fibonacci Sequence generators" << '\n';
+
+  std::cout << '\n' << "Simple Integer Sequence Generator" << '\n';
+  auto iter1 = f();
+  for(int i = 1; i <= 10; i++) {
+    if (iter1.next()) {
+      const auto value = iter1.getValue();
+      std::cout << i << ": " << value << '\n';
+    }
+  }
+
+  std::cout << '\n' << "Fibonacci Sequence Generator" << '\n';
+  int i = 1;
+  auto iter2 = fibonacci(demo_ceiling);
+  while(iter2.next()) {
+    const auto value = iter2.getValue();
+    std::cout << i++ << ": " << value << '\n';
   }
 }
