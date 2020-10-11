@@ -15,7 +15,8 @@
 
 namespace coro_exp {
 
-  template<typename T>
+  // restrict this template class to only arithmetic types
+  template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, void*> = nullptr>
   class generator {
   public:
     struct promise_type;
