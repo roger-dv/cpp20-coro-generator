@@ -1,7 +1,13 @@
+#include <limits>
 #include <concepts>
 #include <coroutine>
 #include <iostream>
 #include <ranges>
+
+static const auto demo_ceiling1 = std::numeric_limits<unsigned long>::max() / 1'000ul;
+static const auto demo_ceiling2 = std::numeric_limits<unsigned long long>::max() / 1'000ul;
+static const auto demo_ceiling3 = std::numeric_limits<double>::max() / 1'000.0f;
+static const auto demo_ceiling4 = std::numeric_limits<long double>::max() / 1'000.0f;
 
 template <typename T>
 concept arithmetic = std::integral<T> || std::floating_point<T>;
@@ -85,26 +91,29 @@ namespace coro_exp {
 
 using coro_exp::generator;
 
-generator<int> f() {
-    int i = 0;
+template <std::integral T>
+generator<T> f(T start) {
+    T i = start;
     while (true)
     co_yield i++;
 }
 
-generator<double> fibonacci(const double ceiling) {
-  double j = 0;
-  double i = 1;
+template <arithmetic T>
+generator<T> fibonacci(const T ceiling) {
+  T j = 0;
+  T i = 1;
   co_yield j;
   if (ceiling > j) {
     do {
       co_yield i;
-      double tmp = i;
+      T tmp = i;
       i += j;
       j = tmp;
     } while (i <= ceiling);
   }
 }
 
+/*
 template <class T>
 void print(T &&arg) {
   std::cout << arg << ' ';
@@ -114,26 +123,39 @@ void print(T &&arg, Ts &&... args) {
   print(std::forward<T>(arg));
   print(std::forward<Ts>(args)...);
 }
-
-static const double demo_ceiling = 10E44;
+*/
+// C++ (C++17 fold expressions)
+template <class T>
+void print_one(T &&arg) {
+  std::cout << arg << ' ';
+}
+template <class ... Ts>
+void print(Ts &&... args) {
+  (print_one(std::forward<Ts>(args)), ...);
+}
 
 int main() {
   std::cout << "Example using C++20 coroutines to implement Simple Integer and Fibonacci Sequence generators" << '\n';
 
   std::cout << '\n' << "Simple Integer Sequence Generator" << '\n' << ' ';
-  auto iter1 = f();
+  auto iter1 = f(0);
   for(int i : std::ranges::views::iota(1, 11)) {
     if (iter1.next()) {
       const auto value = iter1.getValue();
-      print(i, ':', value, '\n');
+      print(i, ": bytes", sizeof(value), ':', value, '\n');
     }
   }
 
-  std::cout << '\n' << "Fibonacci Sequence Generator" << '\n' << ' ';
-  int i = 1;
-  auto iter2 = fibonacci(demo_ceiling);
-  while(iter2.next()) {
-    const auto value = iter2.getValue();
-    print(i++, ':', value, '\n');
-  }
+  auto const invoke_fib_seq = [](auto&& iter) {
+    std::cout << '\n' << "Fibonacci Sequence Generator" << '\n' << ' ';
+    for (int i = 1; iter.next(); i++) {
+      const auto value = iter.getValue();
+      print(i, ": bytes", sizeof(value), ':', value, '\n');
+    }
+  };
+
+  invoke_fib_seq(fibonacci(demo_ceiling1));
+  invoke_fib_seq(fibonacci(demo_ceiling2));
+  invoke_fib_seq(fibonacci(demo_ceiling3));
+  invoke_fib_seq(fibonacci(demo_ceiling4));
 }
