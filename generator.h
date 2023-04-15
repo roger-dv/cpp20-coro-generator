@@ -1,5 +1,6 @@
 //
-// Created by rogerv on 9/29/19.
+// Created by github roger-dv on 9/29/2019
+// Updated by github roger-dv on 4/14/2023
 //
 // Based on example code (but with significant cleanup) found in:
 // Rainer Grimm, Concurrency with Modern C++ (Leanpub, 2017 - 2019), 207-209.
@@ -9,18 +10,18 @@
 #define GENERATOR_H
 
 // infiniteDataStream.cpp
-#include <experimental/coroutine>
+#include <coroutine>
 #include <memory>
 #include <iostream>
 
-namespace coro_exp {
+namespace coro {
 
   // restrict this template class to only arithmetic types
   template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, void*> = nullptr>
   class generator {
   public:
     struct promise_type;
-    using handle_type = std::experimental::coroutine_handle<promise_type>;
+    using handle_type = std::coroutine_handle<promise_type>;
   private:
     handle_type coro;
   public:
@@ -63,11 +64,11 @@ namespace coro_exp {
       promise_type &operator=(promise_type&&) = delete;
 
       auto initial_suspend() {
-        return std::experimental::suspend_always{};
+        return std::suspend_always{};
       }
 
-      auto final_suspend() {
-        return std::experimental::suspend_always{};
+      auto final_suspend() noexcept {
+        return std::suspend_always{};
       }
 
       auto get_return_object() {
@@ -75,12 +76,12 @@ namespace coro_exp {
       }
 
       auto return_void() {
-        return std::experimental::suspend_never{};
+        return std::suspend_never{};
       }
 
       auto yield_value(T some_value) {
         current_value = some_value;
-        return std::experimental::suspend_always{};
+        return std::suspend_always{};
       }
 
       void unhandled_exception() {
@@ -89,6 +90,6 @@ namespace coro_exp {
     };
   };
 
-} // coroutn_exp
+} // coro
 
 #endif //GENERATOR_H

@@ -2,29 +2,24 @@
 #include <iostream>
 #include "generator.h"
 
-using coro_exp::generator;
+using coro::generator;
 
 static const auto demo_ceiling1 = std::numeric_limits<unsigned long>::max() / 1'000ul;
 static const auto demo_ceiling2 = std::numeric_limits<unsigned long long>::max() / 1'000ul;
 static const auto demo_ceiling3 = std::numeric_limits<double>::max() / 1'000.0f;
 static const auto demo_ceiling4 = std::numeric_limits<long double>::max() / 1'000.0f;
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wmissing-noreturn"
 template<typename T, std::enable_if_t<std::is_integral_v<T>, void*> = nullptr>
-generator<T> f(T start) {
+generator<T> f([[maybe_unused]] T start) {
   T i = start;
-  while (true)
-    co_yield i++;
+  while (true) {
+    auto j = i++;
+    co_yield j;
+  }
 }
-#pragma clang diagnostic pop
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-variable"
-#pragma clang diagnostic ignored "-Wuninitialized"
-#pragma clang diagnostic ignored "-Wfor-loop-analysis"
 template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, void*> = nullptr>
-generator<T> fibonacci(const T ceiling) {
+generator<T> fibonacci([[maybe_unused]] const T ceiling) {
   T j = 0;
   T i = 1;
   co_yield j;
@@ -37,19 +32,7 @@ generator<T> fibonacci(const T ceiling) {
     } while (i <= ceiling);
   }
 }
-#pragma clang diagnostic pop
 
-/*
-template <class T>
-void print(T &&arg) {
-  std::cout << arg << ' ';
-}
-template <class T, class ... Ts>
-void print(T &&arg, Ts &&... args) {
-  print(std::forward<T>(arg));
-  print(std::forward<Ts>(args)...);
-}
-*/
 // C++ (C++17 fold expressions)
 template <class T>
 void print_one(T &&arg) {
