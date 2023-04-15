@@ -12,42 +12,53 @@ static const auto demo_ceiling4 = std::numeric_limits<long double>::max() / 1'00
 template <typename T>
 concept arithmetic = std::integral<T> || std::floating_point<T>;
 
-namespace coro_exp {
+namespace coro {
 
+  // restrict this template class to only arithmetic types
   template<arithmetic T>
   class generator {
   public:
     struct promise_type;
-    using handle_type = std::coroutine_handle<promise_type>;
+    using coro_handle_type = std::coroutine_handle<promise_type>;
   private:
-    handle_type coro;
+    coro_handle_type coro;
   public:
-    explicit generator(handle_type h) : coro(h) {}
-    generator(const generator &) = delete;
-    generator(generator &&oth) noexcept : coro(oth.coro) {
-      oth.coro = nullptr;
+    explicit generator(coro_handle_type h) : coro{h} {}
+    generator(const generator &) = delete;            // do not allow copy construction
+    generator &operator=(const generator &) = delete; // do not allow copy assignment
+    generator(generator &&oth) noexcept : coro{std::move(oth.coro)} {
+      oth.coro = nullptr; // insure the other moved handle is null
     }
-    generator &operator=(const generator &) = delete;
     generator &operator=(generator &&other) noexcept {
-      coro = other.coro;
-      other.coro = nullptr;
+      if (this != &other) {     // ignore assignment to self
+        if (coro != nullptr) {  // destroy self current handle
+          coro.destroy();
+        }
+        coro = std::move(other.coro); // move other coro handle into self
+        other.coro = nullptr;         // insure other moved handle is null
+      }
       return *this;
     }
     ~generator() {
       if (coro) {
         coro.destroy();
+        coro = nullptr;
       }
     }
 
+  public: // API
     bool next() {
+      if (coro == nullptr || coro.done()) return false; // nothing more to process
       coro.resume();
-      return not coro.done();
+      return !coro.done();
     }
 
-    T getValue() {
-      return coro.promise().current_value;
+    std::optional<T> getValue() {
+      return coro != nullptr ? std::make_optional(coro.promise().current_value) : std::nullopt;
     }
 
+  public:
+    // implementation of above opaque declaration promise_type
     struct promise_type {
     private:
       T current_value{};
@@ -69,7 +80,7 @@ namespace coro_exp {
       }
 
       auto get_return_object() {
-        return generator{handle_type::from_promise(*this)};
+        return generator{coro_handle_type::from_promise(*this)};
       }
 
       auto return_void() {
@@ -87,19 +98,22 @@ namespace coro_exp {
     };
   };
 
-} // coroutn_exp
+} // coro
 
-using coro_exp::generator;
 
 template <std::integral T>
-generator<T> f(T start) {
+  requires std::integral<T> || std::floating_point<T>
+coro::generator<T> ascending_sequence(const T start) {
     T i = start;
-    while (true)
-    co_yield i++;
+    while (true) {
+      T j = i++;
+      co_yield j;
+    }
 }
 
 template <arithmetic T>
-generator<T> fibonacci(const T ceiling) {
+  requires std::integral<T> || std::floating_point<T>
+coro::generator<T> fibonacci(const T ceiling) {
   T j = 0;
   T i = 1;
   co_yield j;
@@ -113,17 +127,6 @@ generator<T> fibonacci(const T ceiling) {
   }
 }
 
-/*
-template <class T>
-void print(T &&arg) {
-  std::cout << arg << ' ';
-}
-template <class T, class ... Ts>
-void print(T &&arg, Ts &&... args) {
-  print(std::forward<T>(arg));
-  print(std::forward<Ts>(args)...);
-}
-*/
 // C++ (C++17 fold expressions)
 template <class T>
 void print_one(T &&arg) {
@@ -138,19 +141,27 @@ int main() {
   std::cout << "Example using C++20 coroutines to implement Simple Integer and Fibonacci Sequence generators" << '\n';
 
   std::cout << '\n' << "Simple Integer Sequence Generator" << '\n' << ' ';
-  auto iter1 = f(0);
-  for(int i : std::ranges::views::iota(1, 11)) {
-    if (iter1.next()) {
-      const auto value = iter1.getValue();
-      print(i, ": bytes", sizeof(value), ':', value, '\n');
+  auto iter1 = ascending_sequence(0);
+  try {
+    for(int i : std::ranges::views::iota(1, 11)) {
+      if (iter1.next()) {
+        const auto value = iter1.getValue().value();
+        print(i, ": bytes", sizeof(value), ':', value, '\n');
+      }
     }
+  } catch(const std::bad_optional_access& e) {
+    std::cerr << e.what() << '\n';
   }
 
   auto const invoke_fib_seq = [](auto&& iter) {
     std::cout << '\n' << "Fibonacci Sequence Generator" << '\n' << ' ';
-    for (int i = 1; iter.next(); i++) {
-      const auto value = iter.getValue();
-      print(i, ": bytes", sizeof(value), ':', value, '\n');
+    try {
+      for (int i = 1; iter.next(); i++) {
+        const auto value = iter.getValue().value();
+        print(i, ": bytes", sizeof(value), ':', value, '\n');
+      }
+    } catch(const std::bad_optional_access& e) {
+      std::cerr << e.what() << '\n';
     }
   };
 

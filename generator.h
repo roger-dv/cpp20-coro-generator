@@ -17,40 +17,51 @@
 namespace coro {
 
   // restrict this template class to only arithmetic types
-  template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, void*> = nullptr>
+  template<typename T>
+    requires std::integral<T> || std::floating_point<T>
   class generator {
   public:
     struct promise_type;
-    using handle_type = std::coroutine_handle<promise_type>;
+    using coro_handle_type = std::coroutine_handle<promise_type>;
   private:
-    handle_type coro;
+    coro_handle_type coro;
   public:
-    explicit generator(handle_type h) : coro(h) {}
-    generator(const generator &) = delete;
-    generator(generator &&oth) noexcept : coro(oth.coro) {
-      oth.coro = nullptr;
+    explicit generator(coro_handle_type h) : coro{h} {}
+    generator(const generator &) = delete;            // do not allow copy construction
+    generator &operator=(const generator &) = delete; // do not allow copy assignment
+    generator(generator &&oth) noexcept : coro{std::move(oth.coro)} {
+      oth.coro = nullptr; // insure the other moved handle is null
     }
-    generator &operator=(const generator &) = delete;
     generator &operator=(generator &&other) noexcept {
-      coro = other.coro;
-      other.coro = nullptr;
+      if (this != &other) {     // ignore assignment to self
+        if (coro != nullptr) {  // destroy self current handle
+          coro.destroy();
+        }
+        coro = std::move(other.coro); // move other coro handle into self
+        other.coro = nullptr;         // insure other moved handle is null
+      }
       return *this;
     }
     ~generator() {
-      if (coro) {
+      if (coro != nullptr) {
         coro.destroy();
+        coro = nullptr;
       }
     }
 
-    bool next() {
+  public: // API
+    bool next() const {
+      if (coro == nullptr || coro.done()) return false; // nothing more to process
       coro.resume();
-      return not coro.done();
+      return !coro.done();
     }
 
-    T getValue() {
-      return coro.promise().current_value;
+    std::optional<T> getValue() noexcept {
+      return coro != nullptr ? std::make_optional(coro.promise().current_value) : std::nullopt;
     }
 
+  public:
+    // implementation of above opaque declaration promise_type
     struct promise_type {
     private:
       T current_value{};
@@ -72,7 +83,7 @@ namespace coro {
       }
 
       auto get_return_object() {
-        return generator{handle_type::from_promise(*this)};
+        return generator{coro_handle_type::from_promise(*this)};
       }
 
       auto return_void() {
