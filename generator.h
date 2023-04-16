@@ -80,7 +80,11 @@ namespace coro {
       promise_type &operator=(const promise_type&) = delete;
       promise_type &operator=(promise_type&&) = delete;
 
-      auto initial_suspend() noexcept {
+      auto get_return_object() {
+        return generator{coro_handle_type::from_promise(*this)};
+      }
+
+      auto initial_suspend() {
         return std::suspend_always{};
       }
 
@@ -88,11 +92,7 @@ namespace coro {
         return std::suspend_always{};
       }
 
-      auto get_return_object() {
-        return generator{coro_handle_type::from_promise(*this)};
-      }
-
-      auto return_void() noexcept {
+      auto return_void() {
         return std::suspend_never{};
       }
 
@@ -101,7 +101,7 @@ namespace coro {
         return std::suspend_always{};
       }
 
-      void unhandled_exception() noexcept {
+      void unhandled_exception() {
         std::terminate();
       }
     };
