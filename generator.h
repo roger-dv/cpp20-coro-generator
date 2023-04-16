@@ -39,8 +39,8 @@ namespace coro {
       oth.coro = nullptr; // insure the other moved handle is null
     }
     generator &operator=(generator &&other) noexcept {
-      if (this != &other) {     // ignore assignment to self
-        if (coro != nullptr) {  // destroy self current handle
+      if (this != &other) { // ignore assignment to self
+        if (coro) {         // destroy self current handle
           coro.destroy();
         }
         coro = std::move(other.coro); // move other coro handle into self
@@ -49,7 +49,7 @@ namespace coro {
       return *this;
     }
     ~generator() {
-      if (coro != nullptr) {
+      if (coro) {
         coro.destroy();
         coro = nullptr;
       }
@@ -57,13 +57,13 @@ namespace coro {
 
   public: // API
     bool next() const {
-      if (coro == nullptr || coro.done()) return false; // nothing more to process
+      if (!coro || coro.done()) return false; // nothing more to process
       coro.resume();
       return !coro.done();
     }
 
     std::optional<T> getValue() noexcept {
-      return coro != nullptr ? std::make_optional(coro.promise().current_value) : std::nullopt;
+      return coro ? std::make_optional(coro.promise().current_value) : std::nullopt;
     }
 
   public:
