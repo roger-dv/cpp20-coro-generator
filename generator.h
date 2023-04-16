@@ -1,25 +1,31 @@
-//
-// Created by github roger-dv on 9/29/2019
-// Updated by github roger-dv on 4/14/2023
-//
-// Based on example code (but with significant cleanup) found in:
-// Rainer Grimm, Concurrency with Modern C++ (Leanpub, 2017 - 2019), 207-209.
-//
-
+/**
+ * Created by github roger-dv on 09/29/2019
+ * Updated by github roger-dv on 04/16/2023
+ *
+ * Based on example code (but with significant cleanup) found in:
+ * Rainer Grimm, Concurrency with Modern C++ (Leanpub, 2017 - 2019), 207-209.
+ *
+ * Latest updates were to remove use of Clang experimental coroutines
+ * and to instead use C++20 official coroutine implementation. The
+ * current implementation has been verified via gcc/g++ v12.1 and with
+ * clang++ v16.
+ */
 #ifndef GENERATOR_H
 #define GENERATOR_H
 
-// infiniteDataStream.cpp
 #include <coroutine>
 #include <memory>
 #include <iostream>
 
 namespace coro {
 
-  // restrict this template class to only arithmetic types
+  /**
+   * General purpose C++20 coroutine generator template class.
+   *
+   * @tparam T the type of value that the generator returns to the caller
+   */
   template<typename T>
-    requires std::integral<T> || std::floating_point<T>
-  class generator {
+  class [[nodiscard]] generator {
   public:
     struct promise_type;
     using coro_handle_type = std::coroutine_handle<promise_type>;
@@ -74,7 +80,7 @@ namespace coro {
       promise_type &operator=(const promise_type&) = delete;
       promise_type &operator=(promise_type&&) = delete;
 
-      auto initial_suspend() {
+      auto initial_suspend() noexcept {
         return std::suspend_always{};
       }
 
@@ -86,7 +92,7 @@ namespace coro {
         return generator{coro_handle_type::from_promise(*this)};
       }
 
-      auto return_void() {
+      auto return_void() noexcept {
         return std::suspend_never{};
       }
 
@@ -95,12 +101,12 @@ namespace coro {
         return std::suspend_always{};
       }
 
-      void unhandled_exception() {
-        std::exit(1);
+      void unhandled_exception() noexcept {
+        std::terminate();
       }
     };
   };
 
-} // coro
+} // namespace coro
 
 #endif //GENERATOR_H

@@ -1,3 +1,19 @@
+/**
+ * Created by github roger-dv on 10/11/2020
+ * Updated by github roger-dv on 04/16/2023
+ *
+ * Based on example code (but with significant cleanup) found in:
+ * Rainer Grimm, Concurrency with Modern C++ (Leanpub, 2017 - 2019), 207-209.
+ *
+ * Latest updates were to remove use of Clang experimental coroutines
+ * and to instead use C++20 official coroutine implementation. Also,
+ * C++20 Concepts are used to constrain template types instead of C++11
+ * SFINAE type traits. The current implementation has been verified via
+ * gcc/g++ v12.1 and with clang++ v16.
+ *
+ * Compile with gcc/g++:
+ * g++ -O3 -std=c++20 -o g++-coroutines gcc-coroutine-example.cpp
+ */
 #include <limits>
 #include <concepts>
 #include <coroutine>
@@ -9,14 +25,16 @@ static const auto demo_ceiling2 = std::numeric_limits<unsigned long long>::max()
 static const auto demo_ceiling3 = std::numeric_limits<double>::max() / 1'000.0f;
 static const auto demo_ceiling4 = std::numeric_limits<long double>::max() / 1'000.0f;
 
-template <typename T>
-concept arithmetic = std::integral<T> || std::floating_point<T>;
 
 namespace coro {
 
-  // restrict this template class to only arithmetic types
-  template<arithmetic T>
-  class generator {
+  /**
+   * General purpose C++20 coroutine generator template class.
+   *
+   * @tparam T the type of value that the generator returns to the caller
+   */
+  template<typename T>
+  class [[nodiscard]]  generator {
   public:
     struct promise_type;
     using coro_handle_type = std::coroutine_handle<promise_type>;
@@ -71,7 +89,7 @@ namespace coro {
       promise_type &operator=(const promise_type&) = delete;
       promise_type &operator=(promise_type&&) = delete;
 
-      auto initial_suspend() {
+      auto initial_suspend() noexcept {
         return std::suspend_always{};
       }
 
@@ -83,7 +101,7 @@ namespace coro {
         return generator{coro_handle_type::from_promise(*this)};
       }
 
-      auto return_void() {
+      auto return_void() noexcept {
         return std::suspend_never{};
       }
 
@@ -92,17 +110,27 @@ namespace coro {
         return std::suspend_always{};
       }
 
-      void unhandled_exception() {
-        std::exit(1);
+      void unhandled_exception() noexcept {
+        std::terminate();
       }
     };
   };
 
-} // coro
+} // namespace coro
 
 
-template <std::integral T>
-  requires std::integral<T> || std::floating_point<T>
+// concept to constrain function templates that follow to only accept arithmetic types
+template <typename T>
+concept arithmetic = std::integral<T> || std::floating_point<T>;
+
+/**
+ * Returns number in ascending sequence starting at specified value.
+ *
+ * @tparam T arithmetic type of number returned
+ * @param start value to begin sequence at
+ * @return coroutine task iterator
+ */
+template <arithmetic T>
 coro::generator<T> ascending_sequence(const T start) {
     T i = start;
     while (true) {
@@ -111,8 +139,14 @@ coro::generator<T> ascending_sequence(const T start) {
     }
 }
 
+/**
+ * Generates Fibonacci sequence up to specified ceiling value.
+ *
+ * @tparam T arithmetic type of number returned
+ * @param ceiling terminates generation of sequence when reaching
+ * @return coroutine task iterator
+ */
 template <arithmetic T>
-  requires std::integral<T> || std::floating_point<T>
 coro::generator<T> fibonacci(const T ceiling) {
   T j = 0;
   T i = 1;
@@ -150,6 +184,8 @@ int main() {
       }
     }
   } catch(const std::bad_optional_access& e) {
+    // calling iter1.next() with true result prior to calling iter1.getValue().value()
+    // should insure a value is always returned, so should never reach here
     std::cerr << e.what() << '\n';
   }
 
@@ -161,6 +197,8 @@ int main() {
         print(i, ": bytes", sizeof(value), ':', value, '\n');
       }
     } catch(const std::bad_optional_access& e) {
+      // calling iter.next() with true result prior to calling iter.getValue().value()
+      // should insure a value is always returned, so should never reach here
       std::cerr << e.what() << '\n';
     }
   };
