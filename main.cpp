@@ -108,4 +108,17 @@ int main() {
   invoke_fib_seq(fibonacci(demo_ceiling2));
   invoke_fib_seq(fibonacci(demo_ceiling3));
   invoke_fib_seq(fibonacci(demo_ceiling4));
+
+  // use the generator's coroutine task iterator
+  try {
+    std::cout << '\n' << "Fibonacci Sequence Generator" << '\n' << ' ';
+    auto rng = fibonacci(demo_ceiling1);
+    for(int i = 1; auto optnl : rng) {
+      const auto value = optnl.value();
+      print(i++, ": bytes", sizeof(value), ':', value, '\n');
+    }
+  } catch(const std::bad_optional_access& e) {
+    // should never reach here
+    std::cerr << e.what() << '\n';
+  }
 }

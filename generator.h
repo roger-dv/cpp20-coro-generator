@@ -105,6 +105,40 @@ namespace coro {
         std::terminate();
       }
     };
+
+    struct iterator {
+      coro_handle_type hdl; // nullptr
+      iterator(coro_handle_type h) : hdl{h} {}
+      void getNext() {
+        if (hdl) {
+          hdl.resume();
+          if (hdl.done()) {
+            hdl = nullptr;
+          }
+        }
+      }
+      std::optional<T> operator*() const {
+        return hdl ? std::make_optional(hdl.promise().current_value) : std::nullopt;
+      }
+      iterator operator++() {
+        getNext();
+        return *this;
+      }
+      bool operator==(const iterator& i) const = default;
+    };
+
+    iterator begin() const {
+      if (!coro || coro.done()) {
+        return iterator{nullptr};
+      }
+      iterator itr{coro};
+      itr.getNext();
+      return itr;
+    }
+
+    iterator end() const {
+      return iterator{nullptr};
+    }
   };
 
 } // namespace coro
