@@ -15,6 +15,7 @@
  */
 #include <limits>
 #include <iostream>
+#include <algorithm>
 #include "generator.h" // general purpose C++20 coroutine generator template class
 
 static const auto demo_ceiling1 = std::numeric_limits<unsigned long>::max() / 1'000ul;
@@ -113,10 +114,9 @@ int main() {
   try {
     std::cout << '\n' << "Fibonacci Sequence Generator" << '\n' << ' ';
     auto rng = fibonacci(demo_ceiling1);
-    for(int i = 1; auto optnl : rng) {
-      const auto value = optnl.value();
-      print(i++, ": bytes", sizeof(value), ':', value, '\n');
-    }
+    static_assert(std::ranges::input_range<decltype(rng)>);
+    int i = 1;
+    std::ranges::for_each(rng, [&i](const auto &value){ print(i++, ": bytes", sizeof(value), ':', value, '\n'); });
   } catch(const std::bad_optional_access& e) {
     // should never reach here
     std::cerr << e.what() << '\n';

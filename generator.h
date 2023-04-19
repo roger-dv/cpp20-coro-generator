@@ -15,7 +15,9 @@
 
 #include <coroutine>
 #include <memory>
+#include <optional>
 #include <iostream>
+#include <assert.h>
 
 namespace coro {
 
@@ -107,7 +109,10 @@ namespace coro {
     };
 
     struct iterator {
-      coro_handle_type hdl; // nullptr
+      using difference_type [[maybe_unused]] = std::ptrdiff_t;
+      using value_type [[maybe_unused]] = T;
+      coro_handle_type hdl = nullptr;
+      iterator() = default;
       iterator(coro_handle_type h) : hdl{h} {}
       void getNext() {
         if (hdl) {
@@ -117,12 +122,16 @@ namespace coro {
           }
         }
       }
-      std::optional<T> operator*() const {
-        return hdl ? std::make_optional(hdl.promise().current_value) : std::nullopt;
+      T& operator*() const {
+        assert(hdl);
+        return hdl.promise().current_value;
       }
-      iterator operator++() {
+      iterator& operator++() { // pre-incrementable
         getNext();
         return *this;
+      }
+      void operator ++ (int) { // post-incrementable
+       ++*this;
       }
       bool operator==(const iterator& i) const = default;
     };

@@ -2,7 +2,7 @@
 
 ## Introduction
 
-A simple program implementing one specific capability of C++20 coroutines<sup>[1](#fn1)</sup> - a generator.
+A simple program implementing one specific capability of C++20 coroutines<sup>[1](#fn1)</sup> — a generator. The `coro::generator<T>` template class also supports C++20 range iteration, e.g., `std::ranges::for_each()` can be used to consume an instantiated generator-based function's output.
 
 This generator example generates the Fibonacci Sequence up to some specified ceiling.
 
