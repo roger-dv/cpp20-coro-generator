@@ -48,7 +48,7 @@ The consuming code and the generator code are executing on the same thread conte
 
 ## Building the program
 
-The program can be built with cmake and with Clang++ version 16.0.0. <sup>[3](#fn3)</sup>
+The program can be built with cmake and with Clang++ version 16.0.0 or g++ version 12.1.0. <sup>[3](#fn3)</sup>
 
 
 <a name="fn1">1</a>: [cppreference.com - Coroutines (C++20)](https://en.cppreference.com/w/cpp/language/coroutines)
