@@ -3,6 +3,16 @@ cmake_minimum_required(VERSION 3.19)
 #set(CMAKE_C_COMPILER "gcc")
 #set(CMAKE_CXX_COMPILER "g++")
 
+# set option to link the C++ std lib (for g++ or clang++)
+if(DEFINED CMAKE_CXX_COMPILER)
+    if(CMAKE_CXX_COMPILER STREQUAL "g++")
+        set(CXX_LIB_OPTN "-static-libstdc++")
+    else()
+        set(CXX_LIB_OPTN "-stdlib=libc++")
+    endif()
+endif()
+message(STATUS "CXX_LIB_OPTN=${CXX_LIB_OPTN}")
+
 project(coroutines)
 
 if(DEFINED ENV{OS} AND "$ENV{OS}" STREQUAL "Windows_NT")
@@ -15,7 +25,8 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -Wno-unknown-pragmas -std=c11"
 
 set(CMAKE_C_STANDARD 11)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unknown-pragmas -std=c++20 -stdlib=libc++")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unknown-pragmas -std=c++20 ${CXX_LIB_OPTN}")
+message(STATUS "CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_DEBUG")
