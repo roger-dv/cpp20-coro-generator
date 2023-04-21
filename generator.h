@@ -115,9 +115,7 @@ namespace coro {
         return std::suspend_always{};
       }
 
-      auto return_void() {
-        return std::suspend_never{};
-      }
+      void return_void() {}
 
       auto yield_value(T some_value) {
         current_value = some_value;
