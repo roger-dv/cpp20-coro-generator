@@ -17,9 +17,21 @@
 #include <memory>
 #include <optional>
 #include <iostream>
+#include <memory_resource>
 #include <assert.h>
 
 namespace coro {
+
+  // the default pmr memory resource is a thread-safe allocator that uses the global new and delete
+  inline static std::pmr::synchronized_pool_resource mem_pool{std::pmr::new_delete_resource()}; // default allocator
+
+  inline static thread_local std::pmr::memory_resource* pmem_pool = nullptr; // never owns any supplied mem resource
+  inline static void set_pmr_mem_pool(std::pmr::memory_resource* mem_pool_cust) {
+    pmem_pool = mem_pool_cust; // set a custom pmr allocator (but does not take ownership)
+  }
+  inline static void reset_default_pmr_mem_pool() {
+    pmem_pool = &mem_pool; // use the default allocator (does not take ownership)
+  }
 
   /**
    * General purpose C++20 coroutine generator template class.
@@ -34,7 +46,9 @@ namespace coro {
   private:
     coro_handle_type coro;
   public:
-    explicit generator(coro_handle_type h) : coro{h} {}
+    explicit generator(coro_handle_type h) : coro{h} {
+      set_pmr_mem_pool(&mem_pool); // use the default allocator
+    }
     generator(const generator &) = delete;            // do not allow copy construction
     generator &operator=(const generator &) = delete; // do not allow copy assignment
     generator(generator &&oth) noexcept : coro{std::move(oth.coro)} {
@@ -71,6 +85,15 @@ namespace coro {
   public:
     // implementation of above opaque declaration promise_type
     struct promise_type {
+    public:
+      void* operator new(std::size_t sz) {
+        assert(pmem_pool != nullptr);
+        return pmem_pool->allocate(sz);
+      }
+      void operator delete(void* ptr, std::size_t sz) {
+        assert(pmem_pool != nullptr);
+        pmem_pool->deallocate(ptr, sz);
+      }
     private:
       T current_value{};
       friend class generator;
@@ -148,6 +171,38 @@ namespace coro {
     iterator end() const {
       return iterator{nullptr};
     }
+  };
+
+  /**
+   * Helper class for establishing a pmr memory_resource compliant
+   * allocator that allocates from a supplied fixed size buffer, e.g.,
+   * such as a buffer allocated on the stack. Allocations are not
+   * freed so depends on buffer context being reclaimed when going
+   * out of scope (this class does not take ownership of the buffer).
+   */
+  class fixed_buffer_pmr_allocator : public std::pmr::memory_resource {
+  private:
+    void * const buf;
+    size_t buf_size;
+  public:
+    const size_t max_buf_size;
+    fixed_buffer_pmr_allocator(void* buf, size_t buf_size) : buf(buf), buf_size(buf_size), max_buf_size(buf_size) {}
+    fixed_buffer_pmr_allocator() = delete;
+    fixed_buffer_pmr_allocator(const fixed_buffer_pmr_allocator&) = delete;
+    fixed_buffer_pmr_allocator(fixed_buffer_pmr_allocator&&) = delete;
+    fixed_buffer_pmr_allocator& operator=(const fixed_buffer_pmr_allocator&) = delete;
+    fixed_buffer_pmr_allocator& operator=(fixed_buffer_pmr_allocator&&) = delete;
+  private:
+    virtual void* do_allocate(size_t bytes, size_t alignment) {
+      if (bytes > buf_size) {
+        std::cerr << "requested bytes: " << bytes << ", remaining bytes capacity: " << buf_size << '\n';
+        throw std::bad_alloc();
+      }
+      buf_size -= bytes;
+      return buf;
+    }
+    virtual void do_deallocate(void* p, size_t bytes, size_t alignment) {}
+    virtual bool do_is_equal(const memory_resource& __other) const noexcept { return false; }
   };
 
 } // namespace coro

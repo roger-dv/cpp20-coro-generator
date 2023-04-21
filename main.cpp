@@ -78,9 +78,21 @@ void print(Ts &&... args) {
 int main() {
   std::cout << "Example using C++20 coroutines to implement Simple Integer and Fibonacci Sequence generators" << '\n';
 
+  using coro_gen_ints_promise_type = coro::generator<decltype(0)>::promise_type;
+  using coro_gen_ints = coro::generator<decltype(0)>;
+  std::cerr << sizeof(coro_gen_ints_promise_type) << " bytes : coro::generator<int>::promise_type\n";
+  std::cerr << sizeof(coro_gen_ints) << " bytes : coro::generator<int>\n";
+
+  // insure instantiation of a decltype(0) coro::generator promise_type is on the stack - not the heap
+  std::cerr << "set coro::generator<int> to stack memory buffer pmr allocator\n";
+//  size_t buf_size = sizeof(coro_gen_ints_promise_type);
+  size_t buf_size = 64; // allocating sizeof promise_type is insufficient for g++
+  coro::fixed_buffer_pmr_allocator pmr_alloc{ alloca(buf_size), buf_size };
+  coro::set_pmr_mem_pool(&pmr_alloc);
+
   std::cout << '\n' << "Simple Integer Sequence Generator" << '\n' << ' ';
-  auto iter1 = ascending_sequence(0);
   try {
+    auto iter1 = ascending_sequence(0);
     for(int i = 1; i <= 10 && iter1.next(); i++) {
       const auto value = iter1.getValue().value();
       print(i, ": bytes", sizeof(value), ':', value, '\n');
@@ -89,7 +101,35 @@ int main() {
     // calling iter1.next() with true result prior to calling iter1.getValue().value()
     // should insure a value is always returned, so should never reach here
     std::cerr << e.what() << '\n';
+  } catch(const std::bad_alloc& e) {
+    // only reaches here if stack buffer was insufficient for allocating the coro::generator promise_type context
+    std::cerr << e.what() << '\n';
   }
+
+  using coro_gen_ulongs_promise_type = coro::generator<decltype(demo_ceiling1)>::promise_type;
+  using coro_gen_ulongs = coro::generator<decltype(demo_ceiling1)>;
+  using coro_gen_ulonglongs_promise_type = coro::generator<decltype(demo_ceiling2)>::promise_type;
+  using coro_gen_ulonglongs = coro::generator<decltype(demo_ceiling2)>;
+  using coro_gen_doubles_promise_type = coro::generator<decltype(demo_ceiling3)>::promise_type;
+  using coro_gen_doubles = coro::generator<decltype(demo_ceiling3)>;
+  using coro_gen_ldoubles_promise_type = coro::generator<decltype(demo_ceiling4)>::promise_type;
+  using coro_gen_ldoubles = coro::generator<decltype(demo_ceiling4)>;
+
+  std::cerr << sizeof(coro_gen_ulongs_promise_type) << " bytes : coro::generator<unsigned long>::promise_type\n";
+  std::cerr << sizeof(coro_gen_ulongs) << " bytes : coro::generator<unsigned long>\n";
+
+  std::cerr << sizeof(coro_gen_ulonglongs_promise_type) << " bytes : coro::generator<unsigned long long>::promise_type\n";
+  std::cerr << sizeof(coro_gen_ulonglongs) << " bytes : coro::generator<unsigned long long>\n";
+
+  std::cerr << sizeof(coro_gen_doubles_promise_type) << " bytes : coro::generator<double>::promise_type\n";
+  std::cerr << sizeof(coro_gen_doubles) << " bytes : coro::generator<double>\n";
+
+  std::cerr << sizeof(coro_gen_ldoubles_promise_type) << " bytes : coro::generator<long double>::promise_type\n";
+  std::cerr << sizeof(coro_gen_ldoubles) << " bytes : coro::generator<long double>\n";
+
+  // reset the coro::generator class to the default promise_type allocator (global new and delete)
+  std::cerr << "reset coro::generator to default pmr allocator (global new and delete)\n";
+  coro::reset_default_pmr_mem_pool();
 
   auto const invoke_fib_seq = [](auto&& iter) {
     std::cout << '\n' << "Fibonacci Sequence Generator" << '\n' << ' ';
@@ -108,7 +148,24 @@ int main() {
   invoke_fib_seq(fibonacci(demo_ceiling1));
   invoke_fib_seq(fibonacci(demo_ceiling2));
   invoke_fib_seq(fibonacci(demo_ceiling3));
-  invoke_fib_seq(fibonacci(demo_ceiling4));
+
+  std::cerr << "now set coro::generator<long double> to stack memory buffer pmr allocator\n";
+  // insure instantiation of a decltype(demo_ceiling4) coro::generator promise_type is on the stack - not the heap
+//  buf_size = sizeof(coro_gen_ldoubles_promise_type);
+  buf_size = 256; // allocating sizeof promise_type is insufficient for g++
+  coro::fixed_buffer_pmr_allocator pmr_alloc_ldbl{ alloca(buf_size), buf_size };
+  coro::set_pmr_mem_pool(&pmr_alloc_ldbl);
+
+  try {
+    invoke_fib_seq(fibonacci(demo_ceiling4)); // instantiates a coro::generator fibonacci for decltype(demo_ceiling4)
+  } catch(const std::bad_alloc& e) {
+    // only reaches here if stack buffer was insufficient for allocating the coro::generator promise_type context
+    std::cerr << e.what() << '\n';
+  }
+
+  // reset the coro::generator class to the default promise_type allocator (global new and delete)
+  std::cerr << "reset coro::generator again to default pmr allocator (global new and delete)\n";
+  coro::reset_default_pmr_mem_pool();
 
   // use the generator's coroutine task iterator
   try {
