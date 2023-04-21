@@ -25,12 +25,12 @@ namespace coro {
   // the default pmr memory resource is a thread-safe allocator that uses the global new and delete
   inline static std::pmr::synchronized_pool_resource mem_pool{std::pmr::new_delete_resource()}; // default allocator
 
-  inline static thread_local std::pmr::memory_resource* pmem_pool = nullptr; // never owns any supplied mem resource
+  inline static thread_local std::pmr::memory_resource* pmem_pool = &mem_pool; // never owns any supplied mem resource
   inline static void set_pmr_mem_pool(std::pmr::memory_resource* mem_pool_cust) {
     pmem_pool = mem_pool_cust; // set a custom pmr allocator (but does not take ownership)
   }
   inline static void reset_default_pmr_mem_pool() {
-    pmem_pool = &mem_pool; // use the default allocator (does not take ownership)
+    pmem_pool = &mem_pool; // reset using the default allocator (does not take ownership)
   }
 
   /**
@@ -46,9 +46,7 @@ namespace coro {
   private:
     coro_handle_type coro;
   public:
-    explicit generator(coro_handle_type h) : coro{h} {
-      set_pmr_mem_pool(&mem_pool); // use the default allocator
-    }
+    explicit generator(coro_handle_type h) : coro{h} {}
     generator(const generator &) = delete;            // do not allow copy construction
     generator &operator=(const generator &) = delete; // do not allow copy assignment
     generator(generator &&oth) noexcept : coro{std::move(oth.coro)} {
