@@ -46,9 +46,21 @@ This will print out 1463 values of the Fibonacci Sequence.
 
 The consuming code and the generator code are executing on the same thread context and yet the `fibonacci()` function enjoys a preserved local scope state as it executes and then resumes from `co_yield`. The generator function just falls out of the loop when the specified ceiling is exceeded to terminate itself - the consuming code will detect this in the `while(iter.next()) {...}` loop condition and fall out of the loop.
 
+## C++17 pmr allocators
+
+The `coro::generator<T>` template class now uses C++17 pmr `memory_resource` allocators. By default the `std::pmr::new_delete_resource` allocator is used which relies on the global `new` and `delete`. It is also `std::pmr::synchronized_pool_resource` so is thread-safe. The function `coro::set_pmr_mem_pool()` can be used to set an alternative or custom pmr allocator. The helper class `coro::fixed_buffer_pmr_allocator` can be used to setup a stack-based, fixed-size buffer (or, say, a data segment fixed-sized buffer). Then the function `coro::reset_default_pmr_mem_pool()` can be invoked to reset the `coro::generator<T>` template class to using the default allocator.
+
 ## Building the program
 
 The program can be built with cmake and with Clang++ version 16.0.0 or g++ version 12.1.0. <sup>[3](#fn3)</sup>
+
+Clang builds need to use the option `-stdlib=libstdc++` instead of `-stdlib=libc++` as there will be dynamic linking runtime errors otherwise — such as:
+
+```
+symbol lookup error: undefined symbol: _ZNSt3__13pmr15memory_resourceD2Ev
+```
+
+Unmangled: `std::__1::pmr::memory_resource::~memory_resource()`
 
 
 <a name="fn1">1</a>: [cppreference.com - Coroutines (C++20)](https://en.cppreference.com/w/cpp/language/coroutines)
