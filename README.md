@@ -58,7 +58,7 @@ Then the function `coro::reset_default_pmr_mem_pool()` can be invoked to reset t
 
 The program has been built with cmake and with g++ version 12.1.0 or clang++ version 16.0.0. <sup>[3](#fn3)</sup>
 
-**NOTE:** On my computer I stalled version 16 of clang/llvm from a downloaded `.tar.gz` file; per the directory as to where I *untarred* to, I then had to update these symbolic links to reference the version 16 clang shared libraries:
+**NOTE:** On my computer I installed version 16 of clang/llvm from a downloaded `.tar.gz` file; per the directory as to where I *untarred* to, I then had to update these symbolic links to reference the version 16 clang shared libraries:
 ```
 /lib/x86_64-linux-gnu/libc++.so.1.0
 /lib/x86_64-linux-gnu/libc++abi.so.1.0
